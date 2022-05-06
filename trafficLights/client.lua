@@ -31,6 +31,7 @@ local pool = {
 local keyValues = {}
 local handles = {}
 local threshold = 100
+local tempTables = {}
 
 -- State variables
 
@@ -78,27 +79,18 @@ Citizen.CreateThread(function()
 						local head = GetEntityHeading(ped)
 
 						if math.abs(head - trafficHeading) < 15.0 and math.abs(head - trafficHeading) > -15.0 then 
-
---------------------- TODO : REWORK OF THE CODE AFTER THIS ------------
 							local temp = {}
-							for obj in Pools(FindFirstObject, FindNextObject, EndFindObject) do
-								for k, w in pairs(trafficLights) do
-									if GetEntityModel(w) == GetHashKey(obj) then 
-										local coords2 = GetEntityCoords(w)
-										if #(coords2 - coords) < 75.0 then 
-											if temp[w] == nil then
-												temp[w] = coords2
-											end
-										end
-									end 
+							for k, w in pairs(handles) do
+								local coords2 = GetEntityCoords(w)
+								if #(coords2 - coords) < 75.0 then 
+									if temp[w] == nil then
+										temp[w] = coords2
+									end
 								end
 							end
+							table.append(tempTables, temp)
 
 							TriggerServerEvent('trafficLight:server:sync', temp, 1)
-							Citizen.SetTimeout(6000, function()
-								local save = temp
-								TriggerServerEvent('trafficLight:server:sync', save, 3)
-							end)
 
 							local temp2 = {}
 							for veh in Pools(FindFirstVehicle, FindNextVehicle, EndFindVehicle) do
@@ -108,7 +100,9 @@ Citizen.CreateThread(function()
 								end
 							end
 						
-							Citizen.SetTimeout(4500, function()
+							Citizen.SetTimeout(6000, function()
+								TriggerServerEvent('trafficLight:server:sync', tempTables[1], 3)
+								table.remove(tempTables, 1)
 								for i, v in pairs(temp2) do 
 									StopBringVehicleToHalt(v)
 								end
@@ -118,6 +112,8 @@ Citizen.CreateThread(function()
 						table.remove(handles, i)
 					end
 				end
+
+--------------------- TODO : REWORK OF THE CODE AFTER THIS ------------
 
 				local vehfaceD = GetOffsetFromEntityInWorldCoords(vehicle, 3.0, 12.0, 0.0)
 				local vehfaceG = GetOffsetFromEntityInWorldCoords(vehicle, -2.0, 12.0, 0.0)
